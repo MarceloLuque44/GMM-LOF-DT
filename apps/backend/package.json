@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "check": "node --check src/app.js && node --check src/config.js && node --check src/db.js && node --check src/server.js && node --check api/index.js"
+    "check": "node --check src/app.js && node --check src/config.js && node --check src/db.js && node --check src/routes/data.js && node --check src/server.js && node --check api/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

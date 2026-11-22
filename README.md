@@ -26,6 +26,16 @@ Requisitos: Node.js 20 o superior.
 
 El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`. La API expone `GET /api/health`, `GET /api/dashboard`, `GET /api/analysis-steps` y `GET /api/logs`.
 
+### API de datos
+
+| Recurso | Endpoints |
+| --- | --- |
+| Observaciones laborales | `GET/POST /api/observations`, `GET/PATCH/DELETE /api/observations/:id` |
+| Variables para los modelos | `GET /api/model-variables` |
+| Bitácora | `GET/POST /api/logs`, `GET/PATCH/DELETE /api/logs/:id` |
+
+Los listados aceptan `page` y `limit`; las observaciones también aceptan `dataset` y `anomalous=true|false`.
+
 ## Variables de entorno
 
 ### Backend (`apps/backend/.env`)

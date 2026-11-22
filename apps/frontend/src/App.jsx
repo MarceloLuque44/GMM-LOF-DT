@@ -4,7 +4,7 @@ import {
   Menu, Network, RefreshCw, ShieldCheck, Sparkles, TableProperties, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { checkHealth, getAnalysisSteps, getDashboard, getLogs } from './api.js'
+import { checkHealth, getAnalysisSteps, getDashboard, getLogs, getObservations } from './api.js'
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -54,7 +54,9 @@ function Sidebar({ activeTab, onSelect, open, onClose }) {
   </>
 }
 
-function Dashboard({ data, loading, apiStatus }) {
+const formatValue = (value) => value === null || value === undefined ? '—' : number.format(value)
+
+function Dashboard({ data, observations, observationsError, loading, apiStatus }) {
   const metrics = [
     { label: 'Registros analizados', value: data?.totalRecords ?? 0, detail: 'Observaciones en PostgreSQL', icon: Database, tone: 'violet' },
     { label: 'Registros completos', value: data?.completeRecords ?? 0, detail: 'Sin faltantes en las 6 variables', icon: Check, tone: 'cyan' },
@@ -86,6 +88,22 @@ function Dashboard({ data, loading, apiStatus }) {
         </div>
       </article>
     </div>
+    <article className="panel table-panel observations-panel">
+      <div className="table-title"><div><h2>Observaciones recientes</h2><p>Datos obtenidos desde <code>gmm.observaciones_laborales</code></p></div><span className="count-badge">{observations.length} mostradas</span></div>
+      {observationsError && <div className="inline-alert">No se pudieron consultar las observaciones. Verifica la conexión y el esquema SQL.</div>}
+      <div className="table-wrap"><table className="observations-table">
+        <thead><tr><th>ID persona</th><th>ylab</th><th>tothrs</th><th>aestudio</th><th>s1_03a</th><th>yprilab</th><th>phrs</th><th>Resultado</th></tr></thead>
+        <tbody>
+          {!loading && observations.map((item) => <tr key={item.id}>
+            <td><strong>{item.personId || `#${item.id}`}</strong><small>{item.dataset}</small></td>
+            <td>{formatValue(item.ylab)}</td><td>{formatValue(item.tothrs)}</td><td>{formatValue(item.aestudio)}</td><td>{formatValue(item.age)}</td><td>{formatValue(item.yprilab)}</td><td>{formatValue(item.phrs)}</td>
+            <td><span className={`status ${item.gmmAnomaly || item.lofAnomaly ? 'pending' : 'ready'}`}>{item.gmmAnomaly || item.lofAnomaly ? 'Atípico' : 'Regular'}</span></td>
+          </tr>)}
+          {!loading && !observationsError && observations.length === 0 && <tr><td colSpan="8"><div className="table-empty compact"><TableProperties size={26} /><strong>No hay observaciones registradas</strong><span>Los registros creados mediante la API aparecerán aquí.</span></div></td></tr>}
+          {loading && <tr><td colSpan="8"><div className="table-empty compact"><RefreshCw className="spin" size={24} /><strong>Cargando observaciones…</strong></div></td></tr>}
+        </tbody>
+      </table></div>
+    </article>
   </>
 }
 
@@ -132,17 +150,21 @@ function App() {
   const [dashboard, setDashboard] = useState(null)
   const [steps, setSteps] = useState(fallbackSteps)
   const [logs, setLogs] = useState([])
+  const [observations, setObservations] = useState([])
   const [loading, setLoading] = useState(true)
   const [logsError, setLogsError] = useState(false)
+  const [observationsError, setObservationsError] = useState(false)
 
   const loadData = async () => {
-    setLoading(true); setLogsError(false)
-    const [healthResult, dashboardResult, stepsResult, logsResult] = await Promise.allSettled([checkHealth(), getDashboard(), getAnalysisSteps(), getLogs()])
+    setLoading(true); setLogsError(false); setObservationsError(false)
+    const [healthResult, dashboardResult, stepsResult, logsResult, observationsResult] = await Promise.allSettled([checkHealth(), getDashboard(), getAnalysisSteps(), getLogs(), getObservations({ limit: 10 })])
     setApiStatus(healthResult.status === 'fulfilled' && healthResult.value?.status === 'ok' ? 'ready' : 'offline')
     if (dashboardResult.status === 'fulfilled') setDashboard(dashboardResult.value)
     if (stepsResult.status === 'fulfilled') setSteps(stepsResult.value.steps)
     if (logsResult.status === 'fulfilled') setLogs(logsResult.value.entries)
     else setLogsError(true)
+    if (observationsResult.status === 'fulfilled') setObservations(observationsResult.value.items)
+    else setObservationsError(true)
     setLoading(false)
   }
 
@@ -157,7 +179,7 @@ function App() {
         <div className="topbar-actions"><button className="icon-button" aria-label="Notificaciones"><Bell size={20} /></button><div className="divider" /><div className="profile"><span className="avatar">ML</span><span className="profile-copy"><strong>Marcelo Luque Tarqui</strong><small>Responsable del análisis</small></span></div></div>
       </header>
       <section className="content">
-        {activeTab === 'dashboard' && <Dashboard data={dashboard} loading={loading} apiStatus={apiStatus} />}
+        {activeTab === 'dashboard' && <Dashboard data={dashboard} observations={observations} observationsError={observationsError} loading={loading} apiStatus={apiStatus} />}
         {activeTab === 'analysis' && <AnalysisSteps steps={steps} />}
         {activeTab === 'logs' && <Logbook entries={logs} loading={loading} error={logsError} onRefresh={loadData} />}
       </section>

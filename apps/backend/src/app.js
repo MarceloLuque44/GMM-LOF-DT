@@ -3,6 +3,7 @@ import express from 'express'
 import helmet from 'helmet'
 import { config } from './config.js'
 import { getPool } from './db.js'
+import { dataRouter } from './routes/data.js'
 
 const app = express()
 
@@ -64,31 +65,7 @@ app.get('/api/dashboard', async (_request, response) => {
   return response.status(200).json({ databaseConfigured: true, ...rows[0] })
 })
 
-app.get('/api/logs', async (_request, response) => {
-  if (!config.databaseUrl) return response.status(200).json({ entries: [] })
-
-  const { rows } = await getPool().query(`
-    SELECT
-      id,
-      paso_numero AS "stepNumber",
-      fecha_hora AS "executedAt",
-      responsable AS responsible,
-      dataset,
-      atributo_variable AS variable,
-      tipo_problema AS "problemType",
-      metodologia AS methodology,
-      accion_realizada AS action,
-      criterio_justificacion AS justification,
-      filas_afectadas AS "affectedRows",
-      impacto_dataset AS "datasetImpact",
-      codigo_script AS script
-    FROM gmm.bitacora
-    ORDER BY paso_numero DESC, fecha_hora DESC
-    LIMIT 200
-  `)
-
-  return response.status(200).json({ entries: rows })
-})
+app.use('/api', dataRouter)
 
 app.use('/api', (_request, response) => {
   response.status(404).json({ error: 'Recurso no encontrado' })
@@ -96,6 +73,8 @@ app.use('/api', (_request, response) => {
 
 app.use((error, _request, response, _next) => {
   console.error(error)
+  if (error.code === '23505') return response.status(409).json({ error: 'El registro ya existe' })
+  if (error.code === '22P02' || error.code === '22007') return response.status(400).json({ error: 'Uno de los valores tiene un formato inválido' })
   response.status(500).json({ error: 'Error interno del servidor' })
 })
 
