@@ -12,6 +12,26 @@
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\lstdefinestyle{Rstyle}{
+  language=R,
+  basicstyle=\ttfamily\fontsize{6}{7}\selectfont,
+  backgroundcolor=\color{black!8},
+  keywordstyle=\color{blue},
+  commentstyle=\color{green!60!black},
+  stringstyle=\color{purple},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+  showstringspaces=false,
+  xleftmargin=0.5em,
+  xrightmargin=0.5em
+}
 
 \hypersetup{
   colorlinks=true,
@@ -454,17 +474,41 @@ LOF se aplicó a las mismas cuatro características de 24275 personas, con $\mat
 Se validan los modelos y patrones obtenidos, se visualizan y se traducen en conocimiento accionable para la toma de decisiones.
 
 % INICIO RESULTADOS 05
-Se evaluaron 24275 personas con identificadores únicos y puntuaciones finitas de ambos modelos. No existen etiquetas externas de anomalía verdadera, por lo que no se calculan precisión ni sensibilidad. Los candidatos son exploratorios y se conservan los valores laborales originales.
+Se evaluaron 24275 personas con identificadores únicos y puntuaciones finitas de ambos modelos. No existen etiquetas externas de anomalía verdadera, por lo que no se calculan precisión ni sensibilidad; los candidatos son exploratorios y se conservan los valores laborales originales.
+
+A continuación se explica qué significa cada dato que se presenta en esta evaluación:
+
+\begin{itemize}
+  \item \textbf{Modelo:} nombre del algoritmo aplicado, que puede ser GMM (Modelos de Mezclas Gaussianas) o LOF (Factor de Valores Atípicos Locales).
+  \item \textbf{Candidatos:} cantidad de personas señaladas por el modelo como perfiles laborales atípicos. Estos son trabajadores cuyas características (ingresos, horas, edad y años de estudio) se alejan de lo común.
+  \item \textbf{Porcentaje:} representa la proporción de candidatos sobre el total de personas evaluadas. Se expresa en porcentaje (\%).
+  \item \textbf{Ingreso mediano candidatos:} es el ingreso laboral mensual típico (mediana) del grupo de personas señaladas como atípicos. Se mide en bolivianos (Bs) por mes.
+  \item \textbf{Resto:} es el ingreso laboral mensual típico (mediana) de todas las personas que no fueron señaladas como atípicas. Sirve como punto de comparación.
+\end{itemize}
+
+La tabla resume los resultados de ambos modelos para comparar cómo se comportan los ingresos de los perfiles atípicos frente al resto de la población.
+
 \begin{table}[H]\centering
 \caption{Evaluación descriptiva de candidatos}
 \begin{tabular}{lrrrr}\toprule Modelo & Candidatos & Porcentaje & Ingreso mediano candidatos & Resto \\ \midrule
 GMM & 243 & 1.00\% & 111.67 & 2598.00 \\
 LOF & 243 & 1.00\% & 3300.00 & 2598.00 \\
 \bottomrule\end{tabular}\end{table}
+
 \begin{figure}[H]\centering
 \includegraphics[width=0.75\textwidth]{../apps/R/output/05_evaluacion/ingresos_candidatos.png}
 \caption{Ingresos medianos de candidatos y resto por modelo.}
 \end{figure}
+
+\textbf{Interpretación sencilla de los resultados:}
+
+Ambos modelos señalaron exactamente 243 personas, lo que representa el 1.00\% de las 24275 personas evaluadas. Esto significa que, de cada 100 trabajadores, aproximadamente uno tiene un perfil laboral que se considera atípico según estos criterios.
+
+En el modelo GMM, los ingresos medianos de los candidatos son de 111.67 Bs por mes, muy inferiores a los 2598.00 Bs del resto de la población. Esto indica que GMM detecta principalmente perfiles con ingresos inusualmente bajos: personas que trabajan pero ganan muy poco, lo cual puede reflejar empleos informales, subempleo o condiciones laborales precarias.
+
+En el modelo LOF, los ingresos medianos de los candidatos son de 3300.00 Bs por mes, superiores a los 2598.00 Bs del resto. Esto indica que LOF detecta principalmente perfiles con ingresos inusualmente altos respecto a sus vecinos: personas que ganan considerablemente más que otros con características similares, lo cual puede reflejar empleos bien remunerados, horas extras significativas o situaciones laborales particulares.
+
+En resumen, GMM tiende a identificar perfiles de bajos ingresos y LOF tiende a identificar perfiles de altos ingresos, ambos considerados atípicos pero por razones opuestas. Ninguno de los dos modelos puede confirmar si estos perfiles son errores en los datos o situaciones laborales reales, por lo que todos los candidatos se mantienen como observaciones exploratorias para revisión posterior.
 % FIN RESULTADOS 05
 
 \subsection{Comparación de resultados}
@@ -482,9 +526,482 @@ Sobre los mismos 24275 identificadores, GMM y LOF coinciden en 40 candidatos. So
 \end{figure}
 % FIN RESULTADOS 05_01
 
-\section{Figuras del perfilado de variables}
+% ---------------------------------------------------------------------------
+% Anexo: Documentación de scripts R
+% ---------------------------------------------------------------------------
+\section{Documentación de scripts R}
 
-Las figuras del perfilado inicial (mapa de faltantes, barras de NA, histogramas, boxplots, violines, correlaciones, dispersión y PCA) se presentan en la subsección 2.1 y se incorporan directamente al informe de auditoría.
+Este anexo documenta cada script de R bajo \texttt{apps/R/}, excluidos \texttt{inicio.R} y \texttt{cliente\_api.R}. Para cada script se indica el propósito, las técnicas aplicadas, las variables usadas y el código fuente relevante.
 
+\subsection{02\_02\_normalizacion.R --- Normalización de estructura y formatos}
+
+\subsubsection{Propósito}
+Homogeneizar los formatos de las columnas del dataset de la ECE antes del modelado. Valida que las siete columnas requeridas existan, corrige espacios en blanco del identificador \texttt{id\_persona}, convierte columnas numéricas almacenadas como texto y verifica que no haya identificadores vacíos ni repetidos.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Validación de columnas requeridas (\texttt{id\_persona}, \texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}).
+  \item Trimming de espacios en blanco en \texttt{id\_persona} mediante \texttt{trimws()}.
+  \item Conversión de texto a numérico con \texttt{as.numeric()} y \texttt{gsub()} para reemplazar coma por punto decimal.
+  \item Control de valores no numéricos que detiene la ejecución si se encuentran.
+  \item Generación de tabla resumen y gráfico de barras de valores faltantes.
+  \item Registro de operaciones en la bitácora de la API.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{id\_persona}, \texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}.
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+etapa_02_02 <- function(datos, api_base = API_BASE_URL,
+                        responsable = Sys.getenv("GMM_RESPONSABLE", "Marcelo Luque Tarqui"),
+                        dataset_nombre = Sys.getenv("GMM_DATASET", "ECE_1T_2026")) {
+  requeridas <- c("id_persona", "ylab", "tothrs", "aestudio", "s1_03a", "yprilab", "phrs")
+  faltan <- setdiff(requeridas, names(datos))
+  if (length(faltan)) stop("Faltan columnas: ", paste(faltan, collapse = ", "), call. = FALSE)
+  datos_02_02 <- data.table::as.data.table(data.table::copy(datos))
+  id_antes <- as.character(datos_02_02$id_persona)
+  id_despues <- trimws(id_antes)
+  datos_02_02[, id_persona := id_despues]
+  num_vars <- setdiff(requeridas, "id_persona")
+  conversiones <- integer(length(num_vars))
+  names(conversiones) <- num_vars
+  for (variable in num_vars) {
+    original <- datos_02_02[[variable]]
+    if (is.numeric(original)) next
+    texto <- trimws(as.character(original))
+    texto[texto %in% c("", "NA", "N/A", "NULL")] <- NA_character_
+    convertido <- suppressWarnings(as.numeric(gsub(",", ".", texto, fixed = TRUE)))
+    conversiones[variable] <- sum(!is.na(convertido))
+    data.table::set(datos_02_02, j = variable, value = convertido)
+  }
+  datos_02_02
+}
+\end{lstlisting}
+
+\subsection{02\_03\_duplicados.R --- Gestión de duplicados}
+
+\subsubsection{Propósito}
+Verificar la existencia de registros duplicados exactos y parciales en el dataset. Los perfiles laborales iguales se conservan cuando el identificador \texttt{id\_persona} es distinto, ya que corresponden a personas diferentes.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Detección de identificadores vacíos y repetidos.
+  \item Detección de filas exactamente idénticas incluyendo el identificador.
+  \item Detección de perfiles coincidentes en las seis variables laborales con \texttt{duplicated()}.
+  \item Regla de decisión: no se eliminan observaciones; se conservan todas las personas.
+  \item Gráfico de barras de verificación de duplicados.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{id\_persona}, \texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}.
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+etapa_02_03 <- function(datos_02_02, api_base = API_BASE_URL, ...) {
+  datos_02_03 <- data.table::as.data.table(data.table::copy(datos_02_02))
+  id <- as.character(datos_02_03$id_persona)
+  vacios <- sum(is.na(id) | trimws(id) == "")
+  repetidos_id <- sum(duplicated(id[!is.na(id) & trimws(id) != ""]))
+  repetidos_exactos <- sum(duplicated(datos_02_03))
+  variables <- c("ylab", "tothrs", "aestudio", "s1_03a", "yprilab", "phrs")
+  perfiles_iguales <- sum(duplicated(datos_02_03[, ..variables]))
+  datos_02_03
+}
+\end{lstlisting}
+
+\subsection{02\_04\_valores\_faltantes.R --- Tratamiento de valores faltantes}
+
+\subsubsection{Propósito}
+Seleccionar casos completos para el modelado GMM y LOF. No se imputan valores faltantes; se conservan los registros con las seis variables laborales completas y se descarta el resto para el modelado, manteniéndolos disponibles en el dataframe anterior.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Conteo de valores faltantes y no finitos por variable con \texttt{is.na()} y \texttt{is.finite()}.
+  \item Selección de casos completos con \texttt{complete.cases()}.
+  \item Validación de que los casos completos correspondan a personas ocupadas (\texttt{condact} = 1).
+  \item Verificación de que se obtengan exactamente 24275 casos completos.
+  \item Gráfico de barras de faltantes por variable.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{id\_persona}, \texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}, \texttt{condact}.
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+etapa_02_04 <- function(datos_02_03, ...) {
+  variables <- c("ylab", "tothrs", "aestudio", "s1_03a", "yprilab", "phrs")
+  conteos <- vapply(datos_02_03[, ..variables], function(x) sum(is.na(x) | !is.finite(x)), integer(1))
+  apto <- complete.cases(datos_02_03[, ..variables]) &
+    Reduce(`&`, lapply(datos_02_03[, ..variables], is.finite))
+  datos_02_04 <- data.table::copy(datos_02_03[apto])
+  datos_02_04
+}
+\end{lstlisting}
+
+\subsection{02\_05\_outliers.R --- Detección de valores atípicos}
+
+\subsubsection{Propósito}
+Detectar valores extremos de forma exploratoria en las seis variables laborales. No se elimina ni se capa ningún valor; las etiquetas son candidaturas exploratorias, no errores confirmados.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Rango intercuartílico (IQR): límites $[Q_1 - 1.5 \times IQR,\ Q_3 + 1.5 \times IQR]$.
+  \item Z-Score: regla $|Z| > 3$.
+  \item Cálculo de cuartiles con \texttt{stats::quantile()}.
+  \item Unión de ambas marcas por variable.
+  \item Gráfico de barras comparando IQR y Z $>$ 3.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}.
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+etapa_02_05 <- function(datos_02_04, ...) {
+  variables <- c("ylab", "tothrs", "aestudio", "s1_03a", "yprilab", "phrs")
+  conteos <- lapply(variables, function(variable) {
+    x <- datos_02_05[[variable]]
+    q <- stats::quantile(x, c(0.25, 0.75), names = FALSE)
+    rango <- q[2] - q[1]
+    inferior <- q[1] - 1.5 * rango
+    superior <- q[2] + 1.5 * rango
+    marca_iqr <- x < inferior | x > superior
+    desvio <- stats::sd(x)
+    marca_z <- abs((x - mean(x)) / desvio) > 3
+    data.frame(variable = variable, iqr = sum(marca_iqr), z3 = sum(marca_z),
+               union = sum(marca_iqr | marca_z))
+  })
+  resumen <- do.call(rbind, conteos)
+  resumen
+}
+\end{lstlisting}
+
+\subsection{02\_06\_consistencia.R --- Validación de consistencia y reglas de negocio}
+
+\subsubsection{Propósito}
+Verificar que las seis variables laborales cumplan con dominios de valores esperados y detectar redundancias exactas entre pares de variables. No se modifica ningún registro.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Reglas de dominio por variable (rango mínimo y máximo permitido).
+  \item Detección de valores fuera de dominio.
+  \item Verificación de redundancia exacta entre \texttt{ylab} y \texttt{yprilab}, y entre \texttt{tothrs} y \texttt{phrs}.
+  \item Gráfico de máximos observados en escala logarítmica.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}.
+
+\subsubsection{Reglas de dominio}
+\begin{itemize}
+  \item \texttt{ylab} > 0; \texttt{yprilab} > 0.
+  \item \texttt{tothrs} y \texttt{phrs}: $0 < x \le 168$.
+  \item \texttt{aestudio}: $0 \le x \le 30$.
+  \item \texttt{s1\_03a}: $10 \le x \le 98$.
+\end{itemize}
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+reglas <- list(
+  ylab = function(x) x > 0,
+  tothrs = function(x) x > 0 & x <= 168,
+  aestudio = function(x) x >= 0 & x <= 30,
+  s1_03a = function(x) x >= 10 & x <= 98,
+  yprilab = function(x) x > 0,
+  phrs = function(x) x > 0 & x <= 168
+)
+errores <- vapply(names(reglas), function(v) {
+  x <- datos_02_06[[v]]
+  sum(is.na(x) | !is.finite(x) | !reglas[[v]](x))
+}, integer(1))
+\end{lstlisting}
+
+\subsection{03\_transformacion.R --- Transformación de características}
+
+\subsubsection{Propósito}
+Crear cuatro características no redundantes para GMM y LOF a partir de las seis variables laborales originales. Se aplica transformación logarítmica \texttt{log1p} al ingreso total y estandarización z-score a las cuatro características. Las seis variables originales y los identificadores permanecen intactos.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Transformación \texttt{log1p(x)} para reducir la asimetría del ingreso.
+  \item Estandarización z-score: $(x - \mu) / \sigma$.
+  \item Conservación de las seis variables originales intactas.
+  \item Generación de cuatro nuevas columnas: \texttt{modelo\_ylab}, \texttt{modelo\_tothrs}, \texttt{modelo\_aestudio}, \texttt{modelo\_s1\_03a}.
+  \item Gráfico de histogramas de las distribuciones transformadas.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+Entrada: \texttt{ylab}, \texttt{tothrs}, \texttt{aestudio}, \texttt{s1\_03a}, \texttt{yprilab}, \texttt{phrs}, \texttt{id\_persona}.
+Salida: \texttt{modelo\_ylab}, \texttt{modelo\_tothrs}, \texttt{modelo\_aestudio}, \texttt{modelo\_s1\_03a}.
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+variables <- c("ylab", "tothrs", "aestudio", "s1_03a")
+transformadas <- list(
+  modelo_ylab = log1p(datos_03$ylab),
+  modelo_tothrs = datos_03$tothrs,
+  modelo_aestudio = datos_03$aestudio,
+  modelo_s1_03a = datos_03$s1_03a
+)
+for (i in seq_along(transformadas)) {
+  columna <- names(transformadas)[i]
+  data.table::set(datos_03, j = columna,
+                  value = (transformadas[[i]] - resumen$media_pre[i]) / resumen$sd_pre[i])
+}
+\end{lstlisting}
+
+\subsection{04\_01\_gmm.R --- Modelos de Mezclas Gaussianas (GMM)}
+
+\subsubsection{Propósito}
+Ajustar un modelo de mezclas gaussianas sobre las cuatro características transformadas para identificar observaciones de baja probabilidad (perfiles atípicos).
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Selección del número de componentes por criterio BIC (entre 1 y 4 componentes).
+  * Estructuras de covariancia probadas: \texttt{EII}, \texttt{VII}, \texttt{EEI}, \texttt{VEI}.
+  \item Algoritmo EM con \texttt{mclust::Mclust()}.
+  \item Puntuación individual: densidad logarítmica negativa ($-\log(\text{densidad})$).
+  \item Umbral exploratorio P99 del percentil 99 de las puntuaciones.
+  \item Gráfico de histograma de puntuaciones con umbral P99.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{modelo\_ylab}, \texttt{modelo\_tothrs}, \texttt{modelo\_aestudio}, \texttt{modelo\_s1\_03a}.
+
+\subsubsection{Resultados obtenidos}
+\begin{itemize}
+  \item 4 componentes, estructura \texttt{VEI}.
+  \item BIC: -254427.28; log-verosimilitud: -127082.37.
+  \item Umbral P99: 10.7690.
+  \item 243 perfiles señalados (1.00\%).
+\end{itemize}
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+etapa_04_01 <- function(datos_03, ...) {
+  variables <- c("modelo_ylab", "modelo_tothrs", "modelo_aestudio", "modelo_s1_03a")
+  x <- as.matrix(datos_04_01[, ..variables])
+  set.seed(20261)
+  modelo <- mclust::Mclust(x, G = 1:4, modelNames = c("EII", "VII", "EEI", "VEI"))
+  log_densidad <- mclust::dens(x, modelName = modelo$modelName,
+                               parameters = modelo$parameters, logarithm = TRUE)
+  puntuacion <- -as.numeric(log_densidad)
+  umbral <- as.numeric(stats::quantile(puntuacion, 0.99, names = FALSE))
+  datos_04_01
+}
+\end{lstlisting}
+
+\subsection{04\_02\_lof.R --- Local Outlier Factor (LOF)}
+
+\subsubsection{Propósito}
+Aplicar el algoritmo Local Outlier Factor sobre las mismas cuatro características transformadas para detectar trabajadores con características poco frecuentes respecto a sus vecinos.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Algoritmo LOF con \texttt{dbscan::lof()}.
+  \item Parámetro \texttt{minPts} = 20 (vecinos más cercanos).
+  \item Puntuación individual: factor de valor atípico local.
+  \item Umbral exploratorio P99 del percentil 99.
+  \item Gráfico de histograma de puntuaciones LOF con umbral P99.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{modelo\_ylab}, \texttt{modelo\_tothrs}, \texttt{modelo\_aestudio}, \texttt{modelo\_s1\_03a}.
+
+\subsubsection{Resultados obtenidos}
+\begin{itemize}
+  \item minPts: 20.
+  \item Umbral P99: 1.4156.
+  \item 243 perfiles señalados (1.00\%).
+  \item 1476 perfiles transformados idénticos (identificadores distintos, conservados).
+\end{itemize}
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+etapa_04_02 <- function(datos_04_01, ...) {
+  variables <- c("modelo_ylab", "modelo_tothrs", "modelo_aestudio", "modelo_s1_03a")
+  x <- as.matrix(datos_04_02[, ..variables])
+  k <- 20L
+  puntuacion <- as.numeric(dbscan::lof(x, minPts = k))
+  umbral <- as.numeric(stats::quantile(puntuacion, 0.99, names = FALSE))
+  atipico <- puntuacion >= umbral
+  datos_04_02
+}
+\end{lstlisting}
+
+\subsection{05\_01\_comparacion.R --- Comparación de resultados GMM y LOF}
+
+\subsubsection{Propósito}
+Comparar las etiquetas de atipicidad de GMM y LOF sobre los mismos identificadores, calculando la similitud de Jaccard y el acuerdo global entre ambos conjuntos de candidatos.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Cruce de etiquetas binarias \texttt{gmm\_atipico} y \texttt{lof\_atipico}.
+  \item Cálculo de intersección (ambos), exclusivos de cada modelo y ninguno.
+  \item Similitud de Jaccard: $|\text{GMM} \cap \text{LOF}| / |\text{GMM} \cup \text{LOF}|$.
+  \item Acuerdo global: proporción de casos en los que ambos modelos coinciden (señalados o no señalados).
+  \item Gráfico de barras de coincidencias y diferencias.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{id\_persona}, \texttt{gmm\_atipico}, \texttt{lof\_atipico}.
+
+\subsubsection{Resultados obtenidos}
+\begin{itemize}
+  \item Ambos modelos: 40 candidatos.
+  \item Solo GMM: 203; Solo LOF: 203.
+  * Ninguno: 23829.
+  \item Jaccard: 0.0897.
+  \item Acuerdo global: 0.9833.
+\end{itemize}
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+gmm <- datos_05_01$gmm_atipico
+lof <- datos_05_01$lof_atipico
+ambos <- sum(gmm & lof)
+solo_gmm <- sum(gmm & !lof)
+solo_lof <- sum(!gmm & lof)
+ninguno <- sum(!gmm & !lof)
+union <- ambos + solo_gmm + solo_lof
+jaccard <- ambos / union
+acuerdo <- (ambos + ninguno) / n
+\end{lstlisting}
+
+\subsection{05\_evaluacion.R --- Evaluación descriptiva de candidatos}
+
+\subsubsection{Propósito}
+Evaluar descriptivamente los candidatos detectados por GMM y LOF. Como no existen etiquetas externas de anomalía verdadera, no se calculan precisión ni sensibilidad; se reportan estadísticos descriptivos de ingresos y horas para candidatos y el resto de la población.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Mediana de ingresos laborales (\texttt{ylab}) para candidatos y resto, por modelo.
+  \item Mediana de horas semanales totales (\texttt{tothrs}) para candidatos y resto, por modelo.
+  * Percentiles y puntuaciones máximas de ambos modelos.
+  \item Gráfico de barras de ingresos medianos por clasificación.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+\texttt{id\_persona}, \texttt{gmm\_score}, \texttt{lof\_score}, \texttt{gmm\_atipico}, \texttt{lof\_atipico}, \texttt{ylab}, \texttt{tothrs}.
+
+\subsubsection{Resultados obtenidos}
+\begin{itemize}
+  \item GMM: 243 candidatos (1.00\%), ingreso mediano candidatos: 111.67 Bs, resto: 2598.00 Bs.
+  \item LOF: 243 candidatos (1.00\%), ingreso mediano candidatos: 3300.00 Bs, resto: 2598.00 Bs.
+\end{itemize}
+
+\subsubsection{Código fuente}
+\begin{lstlisting}[style=Rstyle,language=R]
+resumen <- do.call(rbind, lapply(c("gmm", "lof"), function(modelo) {
+  marca <- datos_05[[paste0(modelo, "_atipico")]]
+  puntuacion <- datos_05[[paste0(modelo, "_score")]]
+  data.frame(modelo = toupper(modelo), candidatos = sum(marca),
+             porcentaje = 100 * mean(marca),
+             ingreso_mediana_candidatos = stats::median(datos_05$ylab[marca]),
+             ingreso_mediana_resto = stats::median(datos_05$ylab[!marca]),
+             horas_mediana_candidatos = stats::median(datos_05$tothrs[marca]),
+             horas_mediana_resto = stats::median(datos_05$tothrs[!marca]))
+}))
+\end{lstlisting}
+
+\subsection{perfilado\_inicial.R --- Auditoría y perfilado inicial (Data Profiling)}
+
+\subsubsection{Propósito}
+Realizar la auditoría y perfilado inicial del dataset de la ECE antes de cualquier transformación. Inspecciona tipos de datos, calcula estadísticas descriptivas, verifica cardinalidad de variables categóricas y genera 8 gráficos exploratorios con sus hallazgos asociados.
+
+\subsubsection{Técnicas aplicadas}
+\begin{itemize}
+  \item Reparación de encoding Windows-1252 a UTF-8 en líneas del CSV.
+  \item Lectura del CSV con separador \texttt{;} y decimal \texttt{,}.
+  \item Inspección de estructura: dimensiones, tipos de datos, cabeceras, primeras filas.
+  \item Estadísticas descriptivas por variable: mínimo, máximo, media, mediana, porcentaje de NA.
+  \item Cardinalidad y categoría modal de variables categóricas.
+  \item Mapa de calor de valores faltantes.
+  \item Barras de porcentaje de faltantes con umbral del 50\%.
+  * Histogramas con curva de densidad y cálculo de asimetría.
+  \item Boxplots con identificación de atípicos por IQR.
+  * Gráficos de violín con detección de modos (máximos locales de densidad).
+  \item Matriz de correlaciones de Pearson con dendrograma jerárquico.
+  * Diagramas de dispersión de los pares con mayor correlación absoluta, con ajuste loess.
+  \item Análisis de componentes principales (PCA) con proyección PC1--PC2 y cargas de variables.
+\end{itemize}
+
+\subsubsection{Variables utilizadas}
+Variables numéricas (\texttt{VARS\_NUM}):
+\begin{itemize}
+  \item \texttt{ylab}: Ingreso laboral mensual total (Bs).
+  * \texttt{tothrs}: Total horas semanales habituales (todas ocupaciones).
+  \item \texttt{aestudio}: Años de escolaridad acumulados.
+  \item \texttt{s1\_03a}: Edad cumplida en años.
+  \item \texttt{yprilab}: Ingreso laboral mensual de ocupación principal (Bs).
+  \item \texttt{phrs}: Horas semanales habituales en ocupación principal.
+\end{itemize}
+
+Variables categóricas (\texttt{VARS\_CAT}):
+\begin{itemize}
+  \item \texttt{depto}: Departamento.
+  * \texttt{area}: Área de residencia.
+  \item \texttt{s1\_02}: Sexo.
+  * \texttt{condact}: Condición de actividad.
+  \item \texttt{niv\_ed}: Nivel educativo.
+  * \texttt{tipohogar}: Tipo de hogar.
+  \item \texttt{s1\_16}: Estado civil.
+  * \texttt{s2\_18}: Categoría ocupacional.
+  \item \texttt{s2\_26a}: Rango de trabajadores.
+\end{itemize}
+
+\subsubsection{Código fuente (funciones principales)}
+\begin{lstlisting}[style=Rstyle,language=R]
+VARS_NUM <- c("ylab", "tothrs", "aestudio", "s1_03a", "yprilab", "phrs")
+VARS_CAT <- c("depto", "area", "s1_02", "condact", "niv_ed",
+              "tipohogar", "s1_16", "s2_18", "s2_26a")
+
+leer_ece <- function(ruta) {
+  lineas <- reparar_encoding_archivo(ruta)
+  dt <- fread(tmp, sep = ";", dec = ",", na.strings = c("", "NA", "N/A"),
+              encoding = "UTF-8", showProgress = FALSE, check.names = FALSE)
+  dt[]
+}
+
+perfilar_variables <- function(dt) {
+  n <- nrow(dt)
+  clases <- vapply(dt, function(x) class(x)[1], character(1))
+  n_na <- vapply(dt, function(x) sum(is.na(x)), integer(1))
+  n_unicos <- vapply(dt, function(x) uniqueN(x, na.rm = TRUE), integer(1))
+  perfil
+}
+
+grafico_histogramas <- function(dt, vars = VARS_NUM) {
+  for (v in vars) {
+    x <- dt[[v]]; x <- x[is.finite(x)]
+    skew <- tryCatch(e1071::skewness(x), error = function(e) NA_real_)
+    df[[v]] <- data.frame(variable = sprintf("%s (asim.=%.2f - NA %.1f %%)", ...), valor = xp)
+  }
+  p <- ggplot(df, aes(x = valor)) +
+    geom_histogram(aes(y = after_stat(density)), bins = 45) +
+    facet_wrap(~variable, scales = "free")
+  p
+}
+
+grafico_pca <- function(dt, vars = VARS_NUM) {
+  X <- as.data.frame(dt[, ..vars])
+  X <- X[complete.cases(X), , drop = FALSE]
+  pca <- prcomp(X, center = TRUE, scale. = FALSE)
+  ve <- 100 * pca$sdev^2 / sum(pca$sdev^2)
+  scores <- data.frame(PC1 = pca$x[, 1], PC2 = pca$x[, 2])
+  p1 <- ggplot(scores, aes(x = PC1, y = PC2, colour = grupo)) +
+    geom_point(alpha = 0.30, size = 0.55)
+  g <- arrangeGrob(p1, p2, ncol = 2)
+  g
+}
+\end{lstlisting}
+
+\subsubsection{Salidas generadas}
+\begin{itemize}
+  \item \texttt{output/perfilado/reporte\_perfilado.html}: reporte HTML autocontenido con todas las figuras y sus textos descriptivos.
+  \item \texttt{output/perfilado/perfil\_variables.csv}: tabla de perfilado por variable.
+  \item \texttt{output/perfilado/figuras/}: 8 figuras PNG numeradas del 01 al 08.
+\end{itemize}
 
 \end{document}

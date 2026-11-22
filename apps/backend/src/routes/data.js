@@ -204,6 +204,15 @@ dataRouter.get('/logs', async (request, response) => {
   return response.json({ entries, pagination: { page, limit, total, pages: Math.ceil(total / limit) } })
 })
 
+dataRouter.get('/logs/series', async (_request, response) => {
+  const { rows } = await getPool().query(`
+    SELECT ${logSelect}
+    FROM gmm.bitacora
+    ORDER BY fecha_hora ASC, id ASC
+  `)
+  return response.json({ entries: rows })
+})
+
 dataRouter.get('/logs/:id', async (request, response) => {
   const id = parseId(request, response)
   if (!id) return

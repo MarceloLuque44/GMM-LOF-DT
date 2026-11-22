@@ -41,6 +41,7 @@ export const deleteObservation = (id) => requestJson(`/api/observations/${id}`, 
 export const getModelVariables = ({ page = 1, limit = 100 } = {}) => requestJson(`/api/model-variables?page=${page}&limit=${limit}`)
 
 export const getLogs = ({ page = 1, limit = 200 } = {}) => requestJson(`/api/logs?page=${page}&limit=${limit}`)
+export const getLogSeries = () => requestJson('/api/logs/series')
 export const getLog = (id) => requestJson(`/api/logs/${id}`)
 export const createLog = (data) => sendJson('/api/logs', 'POST', data)
 export const updateLog = (id, data) => sendJson(`/api/logs/${id}`, 'PATCH', data)

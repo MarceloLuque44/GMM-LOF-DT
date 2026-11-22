@@ -26,12 +26,14 @@ app.get('/api/health', (_request, response) => {
 })
 
 const analysisSteps = [
-  { number: 1, title: 'Selección de datos', description: 'Filtrar la población ocupada y conservar las seis variables laborales.', status: 'ready' },
-  { number: 2, title: 'Preprocesamiento y limpieza', description: 'Auditar faltantes, duplicados, tipos y valores fuera de dominio.', status: 'pending' },
-  { number: 3, title: 'Transformación', description: 'Imputar, transformar distribuciones asimétricas y estandarizar.', status: 'pending' },
-  { number: 4, title: 'Minería con GMM', description: 'Estimar mezclas gaussianas e identificar observaciones de baja probabilidad.', status: 'pending' },
-  { number: 5, title: 'Minería con LOF', description: 'Calcular densidad local y detectar perfiles poco frecuentes.', status: 'pending' },
-  { number: 6, title: 'Evaluación e interpretación', description: 'Comparar resultados y caracterizar los perfiles laborales atípicos.', status: 'pending' },
+  { number: 1, title: 'Selección y perfilado', description: 'Se auditaron 52.061 registros y seis variables laborales.', status: 'done' },
+  { number: 2, title: 'Normalización y duplicados', description: 'Se validaron tipos e identificadores; no hubo identificadores duplicados.', status: 'done' },
+  { number: 3, title: 'Faltantes y casos completos', description: 'Se seleccionaron 24.275 personas ocupadas con seis variables completas, sin imputación.', status: 'done' },
+  { number: 4, title: 'Extremos y consistencia', description: 'Se señalaron extremos exploratorios y se conservaron las 24.275 filas.', status: 'done' },
+  { number: 5, title: 'Transformación', description: 'Se aplicó log(1 + x) al ingreso y puntuación z a cuatro características.', status: 'done' },
+  { number: 6, title: 'Minería con GMM', description: 'Cuatro componentes VEI y umbral P99 señalaron 243 perfiles.', status: 'done' },
+  { number: 7, title: 'Minería con LOF', description: 'Con minPts = 20 y umbral P99 se señalaron 243 perfiles.', status: 'done' },
+  { number: 8, title: 'Evaluación y comparación', description: 'Los modelos coincidieron en 40 candidatos; Jaccard = 0,0897.', status: 'done' },
 ]
 
 app.get('/api/analysis-steps', (_request, response) => {

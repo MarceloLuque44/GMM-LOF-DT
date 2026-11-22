@@ -24,7 +24,7 @@ Requisitos: Node.js 20 o superior.
 5. Ejecuta `sql/schema.sql` en PostgreSQL/Supabase para crear el esquema `gmm`.
 6. Inicia ambos servicios con `npm run dev`.
 
-El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`. La API expone `GET /api/health`, `GET /api/dashboard`, `GET /api/analysis-steps` y `GET /api/logs`.
+El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`. El dashboard y los pasos del análisis muestran una instantánea estática de `docs/informe.tex`; la bitácora sí necesita la API y PostgreSQL.
 
 ### API de datos
 
@@ -32,9 +32,10 @@ El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`
 | --- | --- |
 | Observaciones laborales | `GET/POST /api/observations`, `GET/PATCH/DELETE /api/observations/:id` |
 | Variables para los modelos | `GET /api/model-variables` |
-| Bitácora | `GET/POST /api/logs`, `GET/PATCH/DELETE /api/logs/:id` |
+| Bitácora | `GET/POST /api/logs`, `GET /api/logs/series`, `GET/PATCH/DELETE /api/logs/:id` |
 
 Los listados aceptan `page` y `limit`; las observaciones también aceptan `dataset` y `anomalous=true|false`.
+`GET /api/logs/series` devuelve las entradas cronológicamente para el gráfico de filas afectadas; al seleccionar un punto se abre el detalle de esa entrada.
 
 ### Perfilado R y bitácora
 
