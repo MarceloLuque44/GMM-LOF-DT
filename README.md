@@ -58,6 +58,25 @@ Rscript apps/R/inicio.R --solo-api
 
 También puede generarse únicamente el perfil y los gráficos con `--solo-perfilado`.
 
+Las etapas 2.2 a 5.1 se ejecutan secuencialmente en la misma sesión R con:
+
+```powershell
+Rscript apps/R/inicio.R --hasta-05-01
+```
+
+El dataset de trabajo permanece como `data.frame`/`data.table` en R. `id_persona` mantiene la correspondencia entre etapas; no se carga el dataset completo al backend. Las puntuaciones individuales de GMM y LOF permanecen en R y se envían únicamente resúmenes verificables a la bitácora. Los archivos `resumen_*.csv` y las figuras de cada etapa son resultados agregados, no copias del dataset. Las respuestas verificadas de la API quedan en `apps/R/output/respuestas_api.csv`.
+
+Puede detenerse en cualquier etapa con `--hasta-02-02`, `--hasta-02-03`, `--hasta-02-04`, `--hasta-02-05`, `--hasta-02-06`, `--hasta-03`, `--hasta-04-01`, `--hasta-04-02` o `--hasta-05`. Una falla detiene la secuencia y se registra en `apps/R/output/errores_sincronizacion.csv`. La sincronización consulta la bitácora y omite marcadores de entrada ya persistidos al reintentar. `mclust` y `dbscan` deben instalarse en `apps/R/library` para ejecutar los modelos.
+
+Para conservar el dataframe final y las puntuaciones en una sesión R interactiva:
+
+```r
+Sys.setlocale("LC_CTYPE", "")
+Sys.setenv(GMM_HASTA_ETAPA = "05-01")
+source("apps/R/inicio.R", encoding = "UTF-8")
+# datos_05_01 contiene id_persona, seis variables originales y resultados individuales.
+```
+
 ## Variables de entorno
 
 ### Backend (`apps/backend/.env`)

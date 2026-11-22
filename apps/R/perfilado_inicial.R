@@ -378,7 +378,7 @@ resumir_perfil <- function(dt, perfil) {
               sum(complete.cases(dt)) / n * 100))
   cat(sprintf("Columnas sin ningún NA: %d de %d\n",
               sum(perfil$n_na == 0), ncol(dt)))
-  cat(sprintf("Duplicados exactos: %s\n",
+  cat(sprintf("Perfiles coincidentes en las seis variables (sin contrastar id_persona): %s\n",
               format(sum(duplicated(dt)), big.mark = ".", decimal.mark = ",")))
 
   cat("\nVariables con mayor porcentaje de faltantes:\n")
@@ -1376,7 +1376,7 @@ generar_reporte_html <- function(dt, perfil, resultados) {
     kpi(format(ncol(dt), big.mark = ".", decimal.mark = ","), "Columnas"),
     kpi(sprintf("%.1f %%", 100 * (1 - n_na / (n * ncol(dt)))), "Celdas completas"),
     kpi(sprintf("%.1f %%", 100 * completas / n), "Filas completas"),
-    kpi(format(dups, big.mark = ".", decimal.mark = ","), "Duplicados exactos")
+    kpi(format(dups, big.mark = ".", decimal.mark = ","), "Perfiles coincidentes")
   )
 
   anomalias_li <- c(
@@ -1387,7 +1387,7 @@ generar_reporte_html <- function(dt, perfil, resultados) {
                                       length(const_diseno), paste(sprintf("<code>%s</code>", const_diseno), collapse = ", ")),
     if (length(const_vacias)) sprintf("<li><b>%d columnas vacías</b> (sin ningún dato): %s. Deben eliminarse.</li>",
                                       length(const_vacias), paste(sprintf("<code>%s</code>", const_vacias), collapse = ", ")),
-    sprintf("<li><b>%s duplicados exactos</b> que deben resolverse en el paso 3.</li>",
+    sprintf("<li><b>%s perfiles coincidentes</b> en las seis variables; no implican duplicados de persona y deben contrastarse con el identificador en el paso 3.</li>",
             format(dups, big.mark = ".", decimal.mark = ",")),
     sprintf("<li><b>%d variables de texto libre</b> con alta cardinalidad (nombres de establecimiento, especificaciones); no son aptas para GMM sin codificar.</li>",
             nrow(perfil[clase == "character" & n_unicos > 30])),
@@ -1622,7 +1622,7 @@ enviar_resultados_perfilado_api <- function(
   if (!nrow(dataset)) {
     stop("El dataset no contiene filas.", call. = FALSE)
   }
-  faltantes_dataset <- setdiff(VARS_NUM, names(dataset))
+  faltantes_dataset <- setdiff(c("id_persona", VARS_NUM), names(dataset))
   if (length(faltantes_dataset)) {
     stop("Faltan variables requeridas en el dataset: ",
          paste(faltantes_dataset, collapse = ", "), call. = FALSE)
@@ -1649,6 +1649,10 @@ enviar_resultados_perfilado_api <- function(
   }
 
   datos <- as.data.table(copy(dataset))[, ..VARS_NUM]
+  id_persona <- trimws(as.character(dataset[["id_persona"]]))
+  if (anyNA(id_persona) || any(id_persona == "") || anyDuplicated(id_persona)) {
+    stop("id_persona debe estar presente y ser único antes de sincronizar el perfilado.", call. = FALSE)
+  }
   cat("\nEnviando perfilado existente a la API (sin generar gráficos)...\n")
 
   sincronizar_perfilado_bitacora(

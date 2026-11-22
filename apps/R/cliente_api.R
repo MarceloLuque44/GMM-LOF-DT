@@ -67,6 +67,27 @@ api_crear_bitacora <- function(entrada, api_base = API_BASE_URL) {
   api_solicitud("POST", "/api/logs", cuerpo = entrada, api_base = api_base)
 }
 
+# Guarda identificadores y respuestas de lectura verificables para cada etapa.
+api_registrar_respuestas <- function(ruta, api_base = API_BASE_URL) {
+  pagina <- 1L
+  paginas <- list()
+  repeat {
+    respuesta <- api_obtener_bitacora(pagina = pagina, limite = 100L, api_base = api_base)
+    paginas[[pagina]] <- respuesta$entries
+    if (pagina >= respuesta$pagination$pages) break
+    pagina <- pagina + 1L
+  }
+  entradas <- data.table::rbindlist(paginas, fill = TRUE)
+  entradas <- entradas[grepl("^apps/R/(02_|03_|04_|05_)", script)]
+  if (!nrow(entradas)) stop("No se encontraron respuestas de etapas en la API.", call. = FALSE)
+  registro <- entradas[, .(
+    id_api = id, paso = stepNumber, fecha_hora_api = executedAt,
+    script, respuesta = "persistido y leído desde GET /api/logs"
+  )]
+  data.table::fwrite(registro, ruta)
+  invisible(registro)
+}
+
 crear_entrada_perfilado <- function(variable, n_na, pct_na, n_registros,
                                     reporte, responsable, dataset) {
   problema <- if (n_na > 0) "valor nulo" else "sin valores nulos"
@@ -108,7 +129,17 @@ sincronizar_perfilado_bitacora <- function(perfil, n_registros, duplicados,
     return(invisible(list(enviadas = 0L, fallidas = nrow(perfil), errores = conditionMessage(estado))))
   }
 
-  bitacora_actual <- tryCatch(api_obtener_bitacora(limite = 200L, api_base = api_base), error = identity)
+  bitacora_actual <- tryCatch({
+    pagina <- 1L
+    paginas <- list()
+    repeat {
+      actual <- api_obtener_bitacora(pagina = pagina, limite = 100L, api_base = api_base)
+      paginas[[pagina]] <- actual$entries
+      if (pagina >= actual$pagination$pages) break
+      pagina <- pagina + 1L
+    }
+    list(entries = data.table::rbindlist(paginas, fill = TRUE))
+  }, error = identity)
   if (inherits(bitacora_actual, "error")) {
     warning("La API responde, pero no se pudo consultar la bitácora: ", conditionMessage(bitacora_actual), call. = FALSE)
     return(invisible(list(enviadas = 0L, fallidas = nrow(perfil), errores = conditionMessage(bitacora_actual))))
@@ -136,31 +167,50 @@ sincronizar_perfilado_bitacora <- function(perfil, n_registros, duplicados,
       responsible = responsable,
       dataset = dataset,
       variable = "(seis variables del modelo)",
-      problemType = "duplicado",
+      problemType = "coincidencia de perfil",
       methodology = "KDD - selección y auditoría inicial",
-      action = sprintf("Detección de %s filas duplicadas exactas; no se eliminaron registros.", duplicados),
-      justification = "Los duplicados deben revisarse antes del entrenamiento para evitar ponderar perfiles repetidos.",
-      affectedRows = as.numeric(duplicados),
+      action = sprintf("Detección de %s perfiles iguales en las seis variables; no se eliminaron registros.", duplicados),
+      justification = "Coincidir en seis variables no implica identidad personal; contrastar id_persona antes de decidir si hay duplicados.",
+      affectedRows = 0L,
       datasetImpact = sprintf("%s registros antes / %s registros después (auditoría sin modificación)", n_registros, n_registros),
       script = "apps/R/perfilado_inicial.R::resumir_perfil()"
     )
   }
 
-  for (i in seq_along(entradas)) entradas[[i]]$stepNumber <- siguiente_paso + i - 1L
-
   errores <- character()
   enviadas <- 0L
+  omitidas <- 0L
   for (i in seq_along(entradas)) {
-    resultado <- tryCatch(api_crear_bitacora(entradas[[i]], api_base), error = identity)
+    entrada <- entradas[[i]]
+    previo <- bitacora_actual$entries[
+      dataset == entrada$dataset & variable == entrada$variable &
+        problemType == entrada$problemType &
+        as.numeric(affectedRows) == entrada$affectedRows
+    ]
+    if (nrow(previo)) {
+      omitidas <- omitidas + 1L
+      next
+    }
+    entrada$stepNumber <- siguiente_paso
+    resultado <- tryCatch({
+      creado <- api_crear_bitacora(entrada, api_base)
+      confirmado <- api_solicitud("GET", sprintf("/api/logs/%s", creado$id), api_base = api_base)
+      if (!identical(confirmado$variable, entrada$variable) ||
+          as.numeric(confirmado$affectedRows) != entrada$affectedRows) {
+        stop("La API no confirmó la persistencia")
+      }
+      confirmado
+    }, error = identity)
     if (inherits(resultado, "error")) {
       errores <- c(errores, sprintf("Entrada %d (%s): %s", i, entradas[[i]]$variable, conditionMessage(resultado)))
     } else {
       enviadas <- enviadas + 1L
+      siguiente_paso <- siguiente_paso + 1L
     }
   }
 
   if (length(errores)) warning(paste(errores, collapse = "\n"), call. = FALSE)
-  cat(sprintf("\nBitácora API: %d entrada(s) enviada(s), %d fallida(s) · %s\n",
-              enviadas, length(errores), api_base))
-  invisible(list(enviadas = enviadas, fallidas = length(errores), errores = errores))
+  cat(sprintf("\nBitácora API: %d enviada(s), %d ya existente(s), %d fallida(s) · %s\n",
+              enviadas, omitidas, length(errores), api_base))
+  invisible(list(enviadas = enviadas, omitidas = omitidas, fallidas = length(errores), errores = errores))
 }

@@ -8,5 +8,6 @@ Metadata.md
 *.log
 .DS_Store
 
-docs
-output
+docs/*
+!docs/informe.tex
+/output/

@@ -1,0 +1,490 @@
+% !TEX program = pdflatex
+% Compilar desde la carpeta docs/:  pdflatex informe.tex
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath}
+
+\hypersetup{
+  colorlinks=true,
+  urlcolor=blue,
+  linkcolor=black
+}
+
+% ---------------------------------------------------------------------------
+% Datos de la carátula
+% ---------------------------------------------------------------------------
+\newcommand{\NombreProyecto}{Detección y caracterización de perfiles laborales atípicos en Bolivia mediante Modelos de Mezclas Gaussianas (GMM) y Factor de Valores Atípicos Locales (LOF)}
+\newcommand{\LinkFrontend}{https://LINK-FRONTEND-POR-DEFINIR} % TODO: reemplazar por la URL desplegada
+\newcommand{\LinkDataset}{https://www.ine.gob.bo} % TODO: reemplazar por la URL del dataset de la ECE
+\newcommand{\FechaCaratula}{22 de noviembre de 2026}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \singlespacing
+
+  {\large\bfseries UNIVERSIDAD MAYOR DE SAN ANDRÉS\par}
+  \vspace{0.3cm}
+  {\large\bfseries FACULTAD DE CIENCIAS PURAS Y NATURALES\par}
+  \vspace{0.3cm}
+  {\large\bfseries CARRERA DE INFORMÁTICA\par}
+
+  \vspace{1.2cm}
+  \includegraphics[width=4.5cm]{../assets/Logo_Umsa.png}
+
+  \vspace{1.5cm}
+  {\Large\bfseries \NombreProyecto\par}
+
+  \vfill
+
+  \begin{flushleft}
+    \large
+    \textbf{Materia:}\hspace{0.5em} Minería de Datos \\[0.4cm]
+    \textbf{Estudiante:}\hspace{0.5em} Luque Tarqui Marcelo \\[0.4cm]
+    \textbf{Link de la página:}\hspace{0.5em} \href{\LinkFrontend}{\nolinkurl{\LinkFrontend}} \\[0.4cm]
+    \textbf{Link del dataset:}\hspace{0.5em} \href{\LinkDataset}{\nolinkurl{\LinkDataset}}
+  \end{flushleft}
+
+  \vfill
+
+  {\large La Paz, Bolivia\par}
+  \vspace{0.2cm}
+  {\large \FechaCaratula\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ---------------------------------------------------------------------------
+% 1. Metodología KDD
+% ---------------------------------------------------------------------------
+\section{Metodología KDD}
+
+El proyecto sigue la metodología KDD (Knowledge Discovery in Databases) compuesta por cinco fases:
+
+\begin{enumerate}
+  \item \textbf{Selección de datos:} Se eligen y recopilan los datos relevantes desde las fuentes o bases de datos según el objetivo del análisis.
+  \item \textbf{Preprocesamiento y limpieza:} Se eliminan duplicados, se corrigen inconsistencias, se tratan valores faltantes y se filtra el ruido o datos atípicos.
+  \item \textbf{Transformación:} Los datos se adaptan al formato adecuado mediante normalización, discretización, selección de características o reducción de dimensionalidad.
+  \item \textbf{Minería de datos:} Se aplican algoritmos (clasificación, regresión, clustering, reglas de asociación, detección de anomalías) para encontrar patrones y relaciones ocultas.
+  \item \textbf{Evaluación e interpretación:} Se validan los modelos y patrones obtenidos, se visualizan y se traducen en conocimiento accionable para la toma de decisiones.
+\end{enumerate}
+
+\subsection{Tema de investigación}
+
+Tema: \emph{Detección y caracterización de perfiles laborales atípicos en Bolivia mediante Modelos de Mezclas Gaussianas (GMM) y Factor de Valores Atípicos Locales (LOF), utilizando microdatos de la Encuesta Continua de Empleo (ECE)}.
+
+Este tema es apropiado porque permite aplicar ambos algoritmos sobre las mismas variables y comparar cómo identifican personas con características laborales poco habituales.
+
+\subsection{Planteamiento del problema}
+
+En el mercado laboral boliviano existen trabajadores con distintas condiciones de empleo, ingresos, jornadas laborales, edades y niveles educativos.
+
+Algunas combinaciones pueden resultar estadísticamente inusuales. Por ejemplo:
+
+\begin{itemize}
+  \item Personas que trabajan muchas horas, pero reciben ingresos muy bajos.
+  \item Trabajadores jóvenes con ingresos excepcionalmente altos respecto a perfiles similares.
+  \item Personas con jornadas laborales reducidas e ingresos elevados.
+  \item Trabajadores cuyos ingresos y horas laborales difieren considerablemente de otros dentro de la misma actividad económica.
+\end{itemize}
+
+El objetivo no sería identificar trabajadores problemáticos, sino detectar perfiles estadísticamente atípicos y comprender sus características.
+
+\subsection{Objetivos de investigación}
+
+\subsubsection{Objetivo general}
+
+Detectar y caracterizar perfiles laborales atípicos en la población ocupada de Bolivia mediante la aplicación y comparación de los algoritmos GMM y LOF sobre los microdatos de la Encuesta Continua de Empleo.
+
+\subsubsection{Objetivos específicos}
+
+\begin{enumerate}
+  \item Realizar una auditoría y perfilado inicial de las variables laborales seleccionadas.
+  \item Preparar los datos mediante tratamiento de valores faltantes, transformaciones y estandarización.
+  \item Aplicar GMM para identificar observaciones de baja probabilidad según una mezcla de distribuciones gaussianas.
+  \item Aplicar LOF para detectar trabajadores con características poco frecuentes respecto a sus vecinos.
+  \item Comparar los resultados de ambos algoritmos e interpretar los perfiles laborales detectados.
+\end{enumerate}
+
+\subsection{Variables a utilizar}
+
+El diccionario oficial de la ECE contiene variables derivadas que facilitan este estudio, como ingresos laborales mensuales, horas trabajadas y años de estudio.
+
+\begin{table}[H]
+\centering
+\caption{Variables laborales seleccionadas para el análisis}
+\begin{tabular}{@{}p{5cm}p{2.5cm}p{7cm}@{}}
+\toprule
+\textbf{Variable} & \textbf{Código de referencia} & \textbf{Utilidad} \\
+\midrule
+Ingreso laboral mensual total & ylab & Detectar ingresos inusuales \\
+Horas trabajadas semanales totales & tothrs & Identificar jornadas atípicas \\
+Años de escolaridad acumulados & aestudio & Relacionar educación e ingresos \\
+Edad cumplida en años & s1\_03a & Identificar perfiles por etapa laboral \\
+Ingreso laboral mensual de ocupación principal & yprilab & Comparar ingresos de la ocupación principal \\
+Horas semanales habituales en ocupación principal & phrs & Analizar jornadas en la actividad principal \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Para empezar, utilizaría únicamente ingreso mensual, horas semanales, edad y años de estudio. Posteriormente incorporaría la actividad económica o categoría ocupacional para analizar los resultados por grupos.
+
+% ---------------------------------------------------------------------------
+% 2. Preprocesamiento y limpieza
+% ---------------------------------------------------------------------------
+\section{Preprocesamiento y limpieza}
+
+Se eliminan duplicados, se corrigen inconsistencias, se tratan valores faltantes y se filtra el ruido o datos atípicos.
+
+\subsection{Auditoría y perfilado inicial (Data Profiling)}
+
+Antes de modificar cualquier dato, se evalúa el estado general del conjunto de datos (dataset) para identificar posibles anomalías.
+
+\textbf{Acciones:}
+\begin{itemize}
+  \item Inspección de tipos de datos: identificación de variables numéricas, de texto, fechas y valores booleanos.
+  \item Estadísticas descriptivas: cálculo de valores mínimos, máximos, medias y cantidad de valores faltantes por columna.
+  \item Cardinalidad: verificación de la cantidad de valores distintos que presentan las variables categóricas.
+\end{itemize}
+
+\textbf{Resultado:} una lista inicial de anomalías que deben corregirse o analizarse. Los gráficos de perfilado muestran todas las variables del dataset, incluidas aquellas sin valores faltantes, e indican el porcentaje de NA por variable en cada figura.
+
+\textbf{Variables perfiladas:} el análisis se centra en seis variables numéricas ---ingreso laboral mensual total (\texttt{ylab}), horas semanales totales (\texttt{tothrs}), años de escolaridad acumulados (\texttt{aestudio}), edad cumplida en años (\texttt{s1\_03a}), ingreso laboral mensual de ocupación principal (\texttt{yprilab}) y horas semanales habituales en ocupación principal (\texttt{phrs})--- y nueve variables categóricas ---departamento (\texttt{depto}), área de residencia (\texttt{area}), sexo (\texttt{s1\_02}), condición de actividad (\texttt{condact}), nivel educativo (\texttt{niv\_ed}), tipo de hogar (\texttt{tipohogar}), estado civil (\texttt{s1\_16}), categoría ocupacional (\texttt{s2\_18}) y rango de trabajadores (\texttt{s2\_26a})---.
+
+Las principales anomalías detectadas en este perfilado inicial son:
+\begin{itemize}
+  \item Valores faltantes concentrados en bloques de preguntas filtradas (secciones \texttt{s2\_*}) y en ingresos/horas, que solo aplican a la población ocupada (NA estructural).
+  \item Variables con alto porcentaje de NA (superior al 50\%) candidatas a eliminación.
+  \item Ingresos y horas con distribución fuertemente asimétrica (cola derecha), lo que motiva el uso de mediana y transformaciones logarítmicas antes de GMM y LOF.
+  \item Posibles pares de variables redundantes con alta correlación lineal, identificados en la matriz de correlaciones.
+\end{itemize}
+
+% ---------------------------------------------------------------------------
+% Figuras del perfilado de variables (incorporadas al perfilado inicial)
+% ---------------------------------------------------------------------------
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/01_mapa_faltantes.png}
+\caption{Mapa de valores faltantes por variable. Se incluyen todas las variables, incluso aquellas sin valores faltantes, con el porcentaje de NA indicado en cada columna.}
+\label{fig:mapa_faltantes}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/02_barras_faltantes.png}
+\caption{Barras de valores faltantes por variable. Se muestran todas las variables con su porcentaje de NA; la línea punteada marca el umbral de eliminación (50\%).}
+\label{fig:barras_faltantes}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/04_histogramas.png}
+\caption{Histogramas de distribución de variables numéricas. Se incluyen todas las variables numéricas con el porcentaje de valores faltantes indicado en cada etiqueta.}
+\label{fig:histogramas}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/05_boxplots.png}
+\caption{Boxplots para detección de valores atípicos. Se incluyen todas las variables numéricas con el porcentaje de valores faltantes indicado en cada etiqueta.}
+\label{fig:boxplots}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/06_violines.png}
+\caption{Gráficos de violín por variable. Se incluyen todas las variables numéricas con el porcentaje de valores faltantes indicado en cada etiqueta.}
+\label{fig:violines}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/07_correlaciones.png}
+\caption{Matriz de correlaciones entre variables. Se incluyen todas las variables numéricas, incluso aquellas sin variación o con pocos datos válidos, con el porcentaje de NA en cada eje.}
+\label{fig:correlaciones}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/08_dispersion.png}
+\caption{Gráficos de dispersión entre pares de variables. Se muestran todos los pares de variables numéricas sin filtrar por tamaño de muestra.}
+\label{fig:dispersion}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{../output/perfilado/figuras/09_pca.png}
+\caption{Análisis de componentes principales (PCA).}
+\label{fig:pca}
+\end{figure}
+
+\subsection{Normalización de estructura y formatos}
+
+Se homogenizan los formatos de las columnas para evitar errores de interpretación sintáctica y garantizar la uniformidad de los datos.
+
+\textbf{Acciones:}
+\begin{itemize}
+  \item Cadenas de texto: conversión a mayúsculas o minúsculas de manera coherente, eliminación de espacios en blanco al inicio y al final (trimming) y tratamiento de caracteres especiales o acentos inconsistentes.
+  \item Fechas y horas: conversión al estándar ISO 8601 (\texttt{YYYY-MM-DD}).
+  \item Tipos de datos: conversión explícita de columnas numéricas almacenadas como texto. Por ejemplo, transformar \texttt{"100.50"} en \texttt{100.50}.
+\end{itemize}
+
+% INICIO RESULTADOS 02_02
+Se verificaron 52061 filas y 7 columnas. La normalización conservó las dimensiones y los identificadores únicos; se corrigieron 0 espacios en identificadores y se convirtieron 0 valores numéricos.
+\begin{table}[H]\centering
+\caption{Validación de formatos en las variables seleccionadas}
+\begin{tabular}{llrr}\toprule Variable & Tipo final & Conversiones & Faltantes \\ \midrule
+id\_persona & character & 0 & 0 \\
+ylab & numeric & 0 & 27786 \\
+tothrs & numeric & 0 & 23154 \\
+aestudio & integer & 0 & 9055 \\
+s1\_03a & integer & 0 & 0 \\
+yprilab & numeric & 0 & 27786 \\
+phrs & numeric & 0 & 23154 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/02_02_normalizacion/faltantes_tras_normalizacion.png}
+\caption{Valores faltantes conservados tras la validación de formatos.}
+\end{figure}
+La auditoría conservó los valores extremos y los faltantes para las etapas siguientes.
+% FIN RESULTADOS 02_02
+
+\subsection{Gestión de duplicados}
+
+Consiste en identificar registros repetidos que pueden distorsionar los algoritmos de minería de datos o producir sesgos en los conteos y análisis.
+
+\textbf{Acciones:}
+\begin{itemize}
+  \item Identificación de duplicados exactos: detección de filas completamente idénticas.
+  \item Identificación de duplicados parciales: detección de registros que comparten un mismo identificador único, pero presentan algunas diferencias.
+  \item Regla de decisión: determinar si se debe conservar el primer registro, el más reciente o fusionar los campos faltantes antes de eliminar los duplicados.
+\end{itemize}
+
+% INICIO RESULTADOS 02_03
+Se verificaron 52061 registros y 7 columnas: 0 identificadores vacíos, 0 identificadores repetidos y 0 filas idénticas incluyendo el identificador. Hay 25023 coincidencias en las seis variables laborales; pertenecen a personas distintas y se conservaron. La etapa terminó con 52061 filas y 7 columnas.
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/02_03_duplicados/verificacion_duplicados.png}
+\caption{Comprobación de identificadores, filas y perfiles coincidentes.}
+\end{figure}
+% FIN RESULTADOS 02_03
+
+\subsection{Tratamiento de valores faltantes (Missing Data)}
+
+Consiste en gestionar los valores vacíos (\texttt{NULL}, \texttt{NaN}, \texttt{N/A} o espacios en blanco), considerando su proporción y el patrón de pérdida de información.
+
+\textbf{Estrategias:}
+\begin{itemize}
+  \item Eliminación: eliminar una columna cuando presenta más del 50\% de valores faltantes o eliminar filas cuando contienen ausencias críticas que no pueden recuperarse.
+  \item Imputación estadística: reemplazar los valores faltantes por la media, cuando la distribución es aproximadamente normal y no presenta valores extremos importantes, o por la mediana cuando la distribución es sesgada.
+  \item Imputación categórica: crear una categoría denominada \texttt{"Desconocido"} o reemplazar los valores faltantes por la moda.
+  \item Imputación avanzada: utilizar algoritmos de vecinos más cercanos (K-Nearest Neighbors, KNN) o modelos de regresión para estimar los valores faltantes.
+\end{itemize}
+
+% INICIO RESULTADOS 02_04
+Se revisaron 52061 registros y 7 columnas. Para GMM y LOF se seleccionaron 24275 personas ocupadas con las seis variables completas (46.63\% del total). Los 27786 registros restantes se conservan en el dataframe de la etapa anterior. Entre 28907 ocupados, 4632 no tienen ingreso laboral; no se imputaron valores.
+\begin{table}[H]\centering
+\caption{Valores faltantes en las seis variables antes de la selección}
+\begin{tabular}{lrr}\toprule Variable & Faltantes & Porcentaje \\ \midrule
+ylab & 27786 & 53.37\% \\ 
+tothrs & 23154 & 44.47\% \\ 
+aestudio & 9055 & 17.39\% \\ 
+s1\_03a & 0 & 0.00\% \\ 
+yprilab & 27786 & 53.37\% \\ 
+phrs & 23154 & 44.47\% \\ 
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/02_04_valores_faltantes/faltantes_por_variable.png}
+\caption{Faltantes por variable antes de seleccionar casos completos.}
+\end{figure}
+% FIN RESULTADOS 02_04
+
+\subsection{Detección y tratamiento de valores atípicos (Outliers)}
+
+Consiste en identificar valores extremos que se alejan considerablemente del comportamiento general de una variable y que podrían afectar los análisis estadísticos o los modelos de minería de datos.
+
+\textbf{Técnicas de detección:}
+
+\begin{itemize}
+  \item \textbf{Rango intercuartílico (IQR):} identifica valores que se encuentran fuera de los límites establecidos por la siguiente expresión:
+  \begin{equation}
+    [Q_1 - 1.5 \times IQR,\ Q_3 + 1.5 \times IQR]
+  \end{equation}
+  Donde:
+  \begin{itemize}
+    \item \(Q_1\): primer cuartil.
+    \item \(Q_3\): tercer cuartil.
+    \item \(IQR = Q_3 - Q_1\): rango intercuartílico.
+  \end{itemize}
+
+  \item \textbf{Z-Score:} identifica valores cuya puntuación estandarizada cumple la siguiente condición:
+  \begin{equation}
+    |Z| > 3
+  \end{equation}
+\end{itemize}
+
+\textbf{Estrategias de tratamiento:}
+\begin{itemize}
+  \item Capado (Winsorization): reemplazar los valores atípicos por los límites máximos o mínimos aceptables.
+  \item Transformación: aplicar transformaciones logarítmicas para reducir la escala de los valores extremos y suavizar la distribución.
+  \item Eliminación: eliminar los valores atípicos únicamente cuando se confirma que son consecuencia de errores de digitación o medición y no representan observaciones válidas.
+\end{itemize}
+
+% INICIO RESULTADOS 02_05
+En los 24275 casos completos se aplicaron límites IQR (1,5 veces el rango intercuartílico) y la regla |Z|>3 a las seis variables. Las etiquetas son candidaturas exploratorias, no errores confirmados. Se conservaron las 24275 filas y 7 columnas para GMM y LOF.
+\begin{table}[H]\centering
+\caption{Candidatos a valores extremos por variable}
+\begin{tabular}{lrrr}\toprule Variable & IQR & $|Z|>3$ & Unión \\ \midrule
+ylab & 1208 & 412 & 1208 \\
+tothrs & 488 & 0 & 488 \\
+aestudio & 0 & 0 & 0 \\
+s1\_03a & 23 & 12 & 23 \\
+yprilab & 1208 & 412 & 1208 \\
+phrs & 488 & 0 & 488 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/02_05_outliers/extremos_iqr_z.png}
+\caption{Frecuencia de candidatos extremos según IQR y Z.}
+\end{figure}
+% FIN RESULTADOS 02_05
+
+\subsection{Validación de consistencia y reglas de negocio}
+
+Consiste en realizar una comprobación final para garantizar que los datos limpios tengan sentido lógico y sean coherentes con el contexto del dominio analizado.
+
+\textbf{Ejemplos de validación:}
+\begin{itemize}
+  \item Edad: no puede ser un número negativo ni mayor a 120 años.
+  \item Fechas: la fecha de alta debe ser posterior a la fecha de nacimiento.
+  \item Precios: el precio total debe ser igual al precio unitario multiplicado por la cantidad.
+\end{itemize}
+
+\begin{equation}
+  \text{Precio\_Total} = \text{Precio\_Unitario} \times \text{Cantidad}
+\end{equation}
+
+% ---------------------------------------------------------------------------
+% 3. Transformación
+% ---------------------------------------------------------------------------
+% INICIO RESULTADOS 02_06
+Se validaron 24275 personas y 7 columnas. Ninguna de las seis variables presenta valores fuera de los dominios comprobados; no se modificó ningún registro. Los ingresos \texttt{ylab} y \texttt{yprilab} son iguales en 24275 filas, y las horas \texttt{tothrs} y \texttt{phrs} en 24275. Se conservarán las seis columnas, pero se utilizarán cuatro características no redundantes en los modelos.
+\begin{table}[H]\centering
+\caption{Rangos observados y valores fuera de dominio}
+\begin{tabular}{lrrr}\toprule Variable & Mínimo & Máximo & Fuera de dominio \\ \midrule
+ylab & 12.50 & 32908.00 & 0 \\
+tothrs & 1.00 & 87.50 & 0 \\
+aestudio & 0.00 & 23.00 & 0 \\
+s1\_03a & 14.00 & 92.00 & 0 \\
+yprilab & 12.50 & 32908.00 & 0 \\
+phrs & 1.00 & 87.50 & 0 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/02_06_consistencia/rangos_variables.png}
+\caption{Rangos de las variables antes de la transformación.}
+\end{figure}
+% FIN RESULTADOS 02_06
+
+\section{Transformación}
+
+Los datos se adaptan al formato adecuado mediante normalización, discretización, selección de características o reducción de dimensionalidad.
+
+% ---------------------------------------------------------------------------
+% 4. Minería de datos
+% ---------------------------------------------------------------------------
+% INICIO RESULTADOS 03
+Para 24275 personas se añadieron cuatro características no redundantes. Se aplicó $\log(1+x)$ al ingreso total y después se estandarizaron las cuatro características. Las seis variables laborales originales y los identificadores permanecen intactos. El dataframe pasó de 7 a 11 columnas.
+\begin{table}[H]\centering
+\caption{Parámetros de transformación para GMM y LOF}
+\begin{tabular}{llrr}\toprule Variable & Operación & Media previa & Desvío previo \\ \midrule
+ylab & log1p + z & 7.730 & 0.864 \\
+tothrs & z & 40.277 & 16.894 \\
+aestudio & z & 11.411 & 4.902 \\
+s1\_03a & z & 41.666 & 14.967 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/03_transformacion/distribucion_transformada.png}
+\caption{Distribuciones de las cuatro características transformadas.}
+\end{figure}
+% FIN RESULTADOS 03
+
+\section{Minería de datos}
+
+Se aplican algoritmos (clasificación, regresión, clustering, reglas de asociación, detección de anomalías) para encontrar patrones y relaciones ocultas.
+
+\subsection{GMM (Modelos de Mezclas Gaussianas)}
+
+Se aplica GMM para identificar observaciones de baja probabilidad según una mezcla de distribuciones gaussianas.
+
+% INICIO RESULTADOS 04_01
+El GMM se ajustó sobre las cuatro características transformadas de 24275 personas. La selección por BIC dio 4 componentes y estructura \texttt{VEI} (BIC -254427.28, log-verosimilitud -127082.37). La puntuación individual es la densidad logarítmica negativa. Con umbral P99 = 10.7690 se señalaron 243 perfiles (1.00\%). Las puntuaciones y etiquetas individuales permanecen en R y no reemplazan los valores laborales.
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/04_01_gmm/puntuaciones_gmm.png}
+\caption{Puntuación de baja densidad GMM y umbral exploratorio P99.}
+\end{figure}
+% FIN RESULTADOS 04_01
+
+\subsection{LOF (Local Outlier Factor)}
+
+Se aplica LOF para detectar trabajadores con características poco frecuentes respecto a sus vecinos.
+
+% ---------------------------------------------------------------------------
+% 5. Evaluación e interpretación
+% ---------------------------------------------------------------------------
+% INICIO RESULTADOS 04_02
+LOF se aplicó a las mismas cuatro características de 24275 personas, con $\mathrm{minPts}=20$. El umbral exploratorio P99 fue 1.4156 y señaló 243 perfiles (1.00\%). Se observaron 1476 perfiles transformados idénticos; corresponden a identificadores distintos y se conservaron. Las puntuaciones individuales permanecen en R.
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/04_02_lof/puntuaciones_lof.png}
+\caption{Distribución de puntuaciones LOF y umbral P99.}
+\end{figure}
+% FIN RESULTADOS 04_02
+
+\section{Evaluación e interpretación}
+
+Se validan los modelos y patrones obtenidos, se visualizan y se traducen en conocimiento accionable para la toma de decisiones.
+
+% INICIO RESULTADOS 05
+Se evaluaron 24275 personas con identificadores únicos y puntuaciones finitas de ambos modelos. No existen etiquetas externas de anomalía verdadera, por lo que no se calculan precisión ni sensibilidad. Los candidatos son exploratorios y se conservan los valores laborales originales.
+\begin{table}[H]\centering
+\caption{Evaluación descriptiva de candidatos}
+\begin{tabular}{lrrrr}\toprule Modelo & Candidatos & Porcentaje & Ingreso mediano candidatos & Resto \\ \midrule
+GMM & 243 & 1.00\% & 111.67 & 2598.00 \\
+LOF & 243 & 1.00\% & 3300.00 & 2598.00 \\
+\bottomrule\end{tabular}\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/05_evaluacion/ingresos_candidatos.png}
+\caption{Ingresos medianos de candidatos y resto por modelo.}
+\end{figure}
+% FIN RESULTADOS 05
+
+\subsection{Comparación de resultados}
+
+Se comparan los resultados de ambos algoritmos e interpretan los perfiles laborales detectados.
+
+% ---------------------------------------------------------------------------
+% Figuras del perfilado
+% ---------------------------------------------------------------------------
+% INICIO RESULTADOS 05_01
+Sobre los mismos 24275 identificadores, GMM y LOF coinciden en 40 candidatos. Solo GMM señala 203 y solo LOF 203; ambos consideran no candidatos a 23829. La similitud de Jaccard entre conjuntos de candidatos es 0.0897, y el acuerdo global 0.9833. Este último está dominado por los casos no señalados, por lo que se informa junto con Jaccard. Los desacuerdos son perfiles de interés y no se eliminan.
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{../apps/R/output/05_01_comparacion/acuerdo_modelos.png}
+\caption{Coincidencias y diferencias entre las etiquetas GMM y LOF.}
+\end{figure}
+% FIN RESULTADOS 05_01
+
+\section{Figuras del perfilado de variables}
+
+Las figuras del perfilado inicial (mapa de faltantes, barras de NA, histogramas, boxplots, violines, correlaciones, dispersión y PCA) se presentan en la subsección 2.1 y se incorporan directamente al informe de auditoría.
+
+
+\end{document}
