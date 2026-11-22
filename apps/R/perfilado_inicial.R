@@ -476,7 +476,7 @@ grafico_mapa_faltantes <- function(dt, max_filas = 1200) {
   levels(df$variable) <- etq_x[levels(df$variable)]
 
   p <- ggplot(df, aes(x = variable, y = fila, fill = estado)) +
-    geom_raster() +
+    geom_tile(width = 0.7) +
     scale_fill_manual(values = c("Presente" = "#E8EDF2", "Faltante" = ROJO),
                       name = NULL) +
     scale_y_reverse(expand = c(0, 0)) +
@@ -491,7 +491,7 @@ grafico_mapa_faltantes <- function(dt, max_filas = 1200) {
     ) +
     TEMA_BASE +
     theme(
-      axis.text.x  = element_text(angle = 55, vjust = 1, hjust = 1, size = 7),
+      axis.text.x  = element_text(angle = 55, vjust = 1, hjust = 1, size = 8.5),
       axis.text.y  = element_blank(),
       panel.grid   = element_blank(),
       legend.position = "bottom"
