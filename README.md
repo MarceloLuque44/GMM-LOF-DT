@@ -21,9 +21,10 @@ Requisitos: Node.js 20 o superior.
 2. Copia `apps/backend/.env.example` como `apps/backend/.env`.
 3. Copia `apps/frontend/.env.example` como `apps/frontend/.env`.
 4. Completa `apps/backend/.env` con los valores que ya existen en `Metadata.md`.
-5. Inicia ambos servicios con `npm run dev`.
+5. Ejecuta `sql/schema.sql` en PostgreSQL/Supabase para crear el esquema `gmm`.
+6. Inicia ambos servicios con `npm run dev`.
 
-El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`. El endpoint inicial es `GET /api/health`.
+El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`. La API expone `GET /api/health`, `GET /api/dashboard`, `GET /api/analysis-steps` y `GET /api/logs`.
 
 ## Variables de entorno
 
