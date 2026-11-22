@@ -1,0 +1,23 @@
+{
+  "name": "gmm-air-quality",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n FRONT,BACK -c cyan,magenta \"npm run dev -w @gmm/frontend\" \"npm run dev -w @gmm/backend\"",
+    "dev:front": "npm run dev -w @gmm/frontend",
+    "dev:back": "npm run dev -w @gmm/backend",
+    "build": "npm run build -w @gmm/frontend",
+    "start": "npm run start -w @gmm/backend",
+    "check": "npm run check -w @gmm/frontend && npm run check -w @gmm/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

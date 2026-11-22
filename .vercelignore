@@ -1,0 +1,9 @@
+Metadata.md
+.env
+.env.*
+!.env.example
+docs/
+assets/
+Estructura informe.md
+Base de datos.md
+
