@@ -36,6 +36,28 @@ El frontend queda en `http://localhost:5173` y la API en `http://localhost:3001`
 
 Los listados aceptan `page` y `limit`; las observaciones también aceptan `dataset` y `anomalous=true|false`.
 
+### Perfilado R y bitácora
+
+El script `apps/R/perfilado_inicial.R` carga `apps/R/cliente_api.R` y, al terminar el perfilado, registra en la bitácora los faltantes detectados por variable y los duplicados exactos. Requiere los paquetes R `httr2` y `jsonlite`, la API en ejecución y el esquema SQL aplicado.
+
+En PowerShell:
+
+```powershell
+$env:GMM_API_URL = "http://localhost:3001"
+$env:GMM_RESPONSABLE = "Marcelo Luque Tarqui"
+Rscript apps/R/inicio.R
+```
+
+`GMM_API_URL` usa `http://localhost:3001` por defecto y `GMM_DATASET` usa `ECE_1T_2026`.
+
+Para reutilizar `perfil_variables.csv` y enviar la bitácora sin esperar la regeneración de gráficos:
+
+```powershell
+Rscript apps/R/inicio.R --solo-api
+```
+
+También puede generarse únicamente el perfil y los gráficos con `--solo-perfilado`.
+
 ## Variables de entorno
 
 ### Backend (`apps/backend/.env`)

@@ -48,13 +48,27 @@ if (length(.faltan)) {
 args_full <- commandArgs(trailingOnly = FALSE)
 
 .ruta_script <- function() {
+  archivo_source <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+  if (!is.null(archivo_source)) {
+    return(dirname(normalizePath(archivo_source, mustWork = FALSE)))
+  }
   f <- sub("^--file=", "", grep("^--file=", args_full, value = TRUE))
-  if (length(f)) dirname(normalizePath(f[1], mustWork = FALSE)) else getwd()
+  if (length(f)) return(dirname(normalizePath(f[1], mustWork = FALSE)))
+  ruta_repo <- file.path(getwd(), "apps", "R")
+  if (file.exists(file.path(ruta_repo, "cliente_api.R"))) return(ruta_repo)
+  getwd()
 }
 
 DIR_R       <- .ruta_script()
 DIR_SALIDA  <- file.path(DIR_R, "output", "perfilado")
 DIR_FIG     <- file.path(DIR_SALIDA, "figuras")
+
+# Cliente compartido para consultar la API y registrar los hallazgos en la
+# tabla gmm.bitacora. La URL se configura con GMM_API_URL.
+.encoding_anterior <- getOption("encoding")
+options(encoding = "native.enc")
+eval(parse(file = file.path(DIR_R, "cliente_api.R")), envir = environment())
+options(encoding = .encoding_anterior)
 
 SEMILLA <- 20261
 set.seed(SEMILLA)
@@ -1586,5 +1600,61 @@ ejecutar_perfilado_inicial <- function(dataset) {
               length(resultados)))
   cat(strrep("=", 78), "\n", sep = "")
 
-  invisible(list(perfil = perfil, graficos = resultados, reporte = reporte))
+  invisible(list(
+    perfil = perfil,
+    graficos = resultados,
+    reporte = reporte
+  ))
+}
+
+#' Envía a la API un perfilado existente sin volver a generar gráficos.
+#'
+#' Por defecto lee output/perfilado/perfil_variables.csv, creado por
+#' ejecutar_perfilado_inicial(). Esto permite ejecutar solo la sincronización
+#' cuando las salidas del análisis ya están disponibles.
+enviar_resultados_perfilado_api <- function(
+    dataset,
+    ruta_perfil = file.path(DIR_SALIDA, "perfil_variables.csv"),
+    ruta_reporte = file.path(DIR_SALIDA, "reporte_perfilado.html")) {
+  if (!is.data.frame(dataset)) {
+    stop("El argumento 'dataset' debe ser un data.frame o data.table.", call. = FALSE)
+  }
+  if (!nrow(dataset)) {
+    stop("El dataset no contiene filas.", call. = FALSE)
+  }
+  faltantes_dataset <- setdiff(VARS_NUM, names(dataset))
+  if (length(faltantes_dataset)) {
+    stop("Faltan variables requeridas en el dataset: ",
+         paste(faltantes_dataset, collapse = ", "), call. = FALSE)
+  }
+  if (!file.exists(ruta_perfil)) {
+    stop(
+      "No existe el perfil guardado: ", ruta_perfil,
+      ". Ejecute primero ejecutar_perfilado_inicial().",
+      call. = FALSE
+    )
+  }
+
+  perfil <- fread(ruta_perfil, encoding = "UTF-8", showProgress = FALSE)
+  columnas_requeridas <- c("variable", "n_na", "pct_na")
+  faltantes_perfil <- setdiff(columnas_requeridas, names(perfil))
+  if (length(faltantes_perfil)) {
+    stop("El archivo de perfil no contiene: ",
+         paste(faltantes_perfil, collapse = ", "), call. = FALSE)
+  }
+
+  perfil <- perfil[variable %in% VARS_NUM]
+  if (!nrow(perfil)) {
+    stop("El archivo de perfil no contiene las seis variables del modelo.", call. = FALSE)
+  }
+
+  datos <- as.data.table(copy(dataset))[, ..VARS_NUM]
+  cat("\nEnviando perfilado existente a la API (sin generar gráficos)...\n")
+
+  sincronizar_perfilado_bitacora(
+    perfil = perfil,
+    n_registros = nrow(datos),
+    duplicados = sum(duplicated(datos)),
+    reporte = ruta_reporte
+  )
 }
